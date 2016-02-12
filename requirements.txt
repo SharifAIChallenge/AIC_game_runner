@@ -1,0 +1,7 @@
+Mezzanine==4.0.1
+django-modeltranslation==0.10.2
+django-countries==3.4.1
+django-ckeditor==5.0.3
+celery==3.1.20
+psycopg2==2.6.1
+redis==2.10.5
