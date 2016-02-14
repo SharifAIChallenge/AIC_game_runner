@@ -1,5 +1,5 @@
 from django.core.management import BaseCommand
-from AIC_runner.game.tasks import run_game
+from game.tasks import run_game
 
 __author__ = 'hadi'
 

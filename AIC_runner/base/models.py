@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import base64
 import uuid
+
 import re
 
 from ckeditor.fields import RichTextField
@@ -8,10 +9,12 @@ from django.contrib.auth.models import AbstractUser
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.db import models
-from django.db.models import SET_NULL
+from django.db.models import SET_NULL, Max
 from django.db.models.signals import post_save
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django_countries.fields import CountryField
+from game.models import Game, GameTeamSubmit
 
 
 class Member(AbstractUser):
@@ -22,12 +25,20 @@ class Member(AbstractUser):
 
 
 class Team(models.Model):
+    WILL_COME_CHOICES = (
+        (0, _('yes')),
+        (1, _('no')),
+        (2, _('not decided yet')),
+    )
+
     timestamp = models.DateTimeField(verbose_name=_('timestamp'), auto_now=True)
     competition = models.ForeignKey('game.Competition', verbose_name=_('competition'), null=True)
     name = models.CharField(verbose_name=_('name'), max_length=200)
     head = models.ForeignKey('base.Member', verbose_name=_("team head"), related_name='+')
     show = models.BooleanField(default=True, verbose_name=_("show team in public list"))
     final = models.BooleanField(default=False, verbose_name=_("team is final"))
+
+    will_come = models.PositiveSmallIntegerField(verbose_name=_("will come to site"), choices=WILL_COME_CHOICES, default=2)
 
     def __unicode__(self):
         return 'Team%d(%s)' % (self.id, self.name)
@@ -38,25 +49,6 @@ class Team(models.Model):
 
     def get_members(self):
         return self.member_set.exclude(pk=self.head.pk).distinct()
-
-
-class ProgrammingLanguage(models.Model):
-    name = models.CharField(verbose_name='title', max_length=200)
-    compile_container = models.ForeignKey('base.DockerContainer', verbose_name=_('compile container'), related_name='+')
-    execute_container = models.ForeignKey('base.DockerContainer', verbose_name=_('execute container'), related_name='+')
-
-
-class ServerConfiguration(models.Model):
-    compiled_code = models.FileField(verbose_name=_('compiled code'))
-    execute_container = models.ForeignKey('base.DockerContainer', verbose_name=_('execute container'), related_name='+')
-
-
-class DockerContainer(models.Model):
-    tag = models.CharField(verbose_name=_('tag'), max_length=50)
-    description = models.TextField(verbose_name=_('description'))
-    dockerfile = models.FileField(verbose_name=_('compile dockerfile'), upload_to='dockerfiles/')
-    version = models.PositiveSmallIntegerField(verbose_name=_('version'), default=1)
-    build_log = models.FileField(verbose_name=_('build log'), null=True, blank=True)
 
 
 class Submit(models.Model):
@@ -70,13 +62,13 @@ class Submit(models.Model):
     timestamp = models.DateTimeField(verbose_name=_('timestamp'), auto_now=True)
     code = models.FileField(verbose_name=_('code'), upload_to='submits/temp')
     team = models.ForeignKey(Team, verbose_name=_('team'))
+    submitter = models.ForeignKey(Member, default=None, null=True, blank=True)
 
-    compiled_code = models.FileField(verbose_name=_('compiled code'), null=True, blank=True)
+    compiled_code = models.FileField(verbose_name=_('compiled code'), upload_to='submits/compiled', null=True, blank=True)
     compile_log_file = models.FileField(verbose_name=_('log file'), null=True, blank=True)
     status = models.PositiveSmallIntegerField(verbose_name=_('status'), choices=STATUSES, default=0)
 
-    # todo: filter to Competition's supported languages
-    lang = models.ForeignKey('base.ProgrammingLanguage', verbose_name=_('programming language'))
+    lang = models.ForeignKey('game.ProgrammingLanguage', verbose_name=_('programming language'), null=True)
 
     played = models.IntegerField(verbose_name=_('played'), default=0)
     won = models.IntegerField(verbose_name=_('won'), default=0)
@@ -181,3 +173,50 @@ class Message(models.Model):
     persian_text = models.TextField()
     from_date = models.DateTimeField()
     to_date = models.DateTimeField()
+
+
+class GameRequest(models.Model):
+    requester = models.ForeignKey('Team', verbose_name=_('requester'), related_name='+')
+    requestee = models.ForeignKey('Team', verbose_name=_('requestee'), related_name='+')
+    made_time = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    accepted = models.NullBooleanField(_('state'))
+    accept_time = models.DateTimeField(_('accept time'), null=True, blank=True)
+
+    game = models.ForeignKey('game.Game', null=True)
+
+    def is_responded(self):
+        return self.accept_time is not None
+
+    @classmethod
+    def create(cls, requester, requestee):
+        wait = cls.check_last_time(requester)
+        if wait:
+            return wait
+
+        cls.objects.create(requester=requester, requestee=requestee)
+
+    @classmethod
+    def check_last_time(cls, team):
+        last_time = cls.objects.filter(requester=team, accepted=True).aggregate(Max('accept_time'))['accept_time__max']
+        if last_time:
+            now = timezone.now()
+            return int((now - last_time).total_seconds() / 60)
+
+    def accept(self, accepted):
+        wait = GameRequest.check_last_time(self.requester)
+        if wait:
+            return wait
+
+        self.accepted = accepted
+        self.accept_time = timezone.now()
+        if accepted:
+            self.game = Game.objects.create(
+                competition=self.requestee.competition,
+                title=_('friendly game'),
+                game_type=1,
+            )
+            # TODO: better for teams to have final submit
+            GameTeamSubmit.objects.create(game=self.game, submit=self.requestee.submit_set.last())
+            GameTeamSubmit.objects.create(game=self.game, submit=self.requester.submit_set.last())
+            self.game.run()
+        self.save()

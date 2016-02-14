@@ -10,7 +10,7 @@ from docker import Client
 
 from celery import shared_task
 
-from AIC_runner.game.models import Game
+from game.models import Game
 
 
 @shared_task(bind=True, queue='game_queue')
