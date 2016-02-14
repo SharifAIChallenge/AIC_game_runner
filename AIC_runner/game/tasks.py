@@ -28,7 +28,7 @@ def run_game(self, game_id):
             'lang': submit.pl,
             'token': generate_random_token(),
             'root': game_dir + '/clients/' + submit.id,
-            'compile_result': submit.compile_result,  # todo: the Submit model should have a compile_result field
+            'compile_result': submit.compile_result,
             'container': get_image_id(submit.lang.execute_container),
         }
         for submit in game.players.all()
@@ -77,10 +77,9 @@ def make_dir(path):
 
 def extract_zip(file_field, dst):
     make_dir(dst)
-    fs = file_field.open('r')
-    zf = zipfile.ZipFile(fs)
-    zf.extractall(dst)
-    fs.close()
+    with file_field.open('r') as fs:
+        zf = zipfile.ZipFile(fs)
+        zf.extractall(dst)
 
 
 def get_image_id(container):
