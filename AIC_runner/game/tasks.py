@@ -4,10 +4,6 @@ import shutil
 import zipfile
 from string import ascii_lowercase as lowers
 
-from django.core.files.base import ContentFile
-
-from docker import Client
-
 from celery import shared_task
 
 from game.models import Game
@@ -15,10 +11,16 @@ from game.models import Game
 
 @shared_task(bind=True, queue='game_queue')
 def run_game(self, game_id):
+    try:
+        run_game_unsafe(game_id)
+    except:
+        self.retry()
+
+def run_game_unsafe(game_id):
     game = Game.objects.get(id=game_id)
 
-    competition_dir = '/competitions/' + game.competition.id
-    game_dir = competition_dir + '/' + game.id
+    competition_dir = '/competitions/' + str(game.competition.id)
+    game_dir = competition_dir + '/' + str(game.id)
 
     # prepare yaml context
     game_clients = [
@@ -27,9 +29,9 @@ def run_game(self, game_id):
             'name': submit.team.name,
             'lang': submit.pl,
             'token': generate_random_token(),
-            'root': game_dir + '/clients/' + submit.id,
+            'root': game_dir + '/clients/' + str(submit.id),
             'compile_result': submit.compile_result,
-            'container': get_image_id(submit.lang.execute_container),
+            'container': submit.lang.execute_container.get_image_id(),
         }
         for submit in game.players.all()
     ]
@@ -39,12 +41,12 @@ def run_game(self, game_id):
     }
     game_server = {
         'client_port': 7099,
-        'root': game_dir + '/server' + game.competition.server_version,
+        'root': game_dir + '/server' + str(game.competition.server_version),
         'compiled_code': game.competition.server.compiled_code,
         'container': game.competition.server.execute_container,
     }
     game_additional_containers = {
-        container.tag: get_image_id(container) for container in game.competition.additional_containers.all()
+        container.tag: container.get_image_id() for container in game.competition.additional_containers.all()
     }
     game_context = {
         'server': game_server,
@@ -80,26 +82,3 @@ def extract_zip(file_field, dst):
     with file_field.open('r') as fs:
         zf = zipfile.ZipFile(fs)
         zf.extractall(dst)
-
-
-def get_image_id(container):
-    image_name = 'container-%d:v%d' % (container.id, container.version)
-
-    # create a client to communicate with docker
-    client = Client(base_url='unix://var/run/docker.sock')
-
-    # check if already built
-    images = client.images(name=image_name)
-    if images:
-        return images[0]['Id']
-
-    # build the docker file
-    with container.dockerfile.open('rb') as fs:
-        response = client.build(fileobj=fs, rm=True, tag=image_name)
-        container.build_log.save('%s-build.log' % image_name, ContentFile(response))
-
-    images = client.images(name=image_name)
-    if images:
-        return images[0]['Id']
-    else:
-        return None  # todo: game could not be started, should restart
