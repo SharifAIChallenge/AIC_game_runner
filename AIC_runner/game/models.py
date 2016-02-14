@@ -2,8 +2,6 @@
 from django.contrib.sites.models import Site
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
-from game.tasks import run_game
-
 
 class Competition(models.Model):
     timestamp = models.DateTimeField(verbose_name=_('timestamp'), auto_now=True)
@@ -95,8 +93,8 @@ class Game(models.Model):
     def get_participants(self):
         return [submit.team for submit in self.players]
 
-    def run(self):
-        run_game.delay(self.id)
+    # def run(self):
+    #     run_game.delay(self.id)
 
 
 class GameTeamSubmit(models.Model):
