@@ -1,6 +1,5 @@
 compile:
   image: {{ code_image }}
-  command: python3.5 compile_code/compile.py
   volumes:
    - {{ code_zip }}:/compile/code.zip
    - {{ code_compile }}:/compile/compiled

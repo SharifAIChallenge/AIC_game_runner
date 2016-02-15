@@ -130,6 +130,10 @@ MEDIA_URL = "/media/"
 # Example: "/home/media/media.lawrence.com/media/"
 MEDIA_ROOT = os.path.join(PROJECT_ROOT, *MEDIA_URL.strip("/").split("/"))
 
+# Absolute filesystem path to the directory that will hold dockerfiles
+# Example: "/home/media/media.lawrence.com/dockerfiles/"
+DOCKER_ROOT = os.path.join(PROJECT_ROOT, 'dockers')
+
 # Package/module name to import the root urlpatterns from for the project.
 ROOT_URLCONF = "%s.urls" % PROJECT_APP
 
