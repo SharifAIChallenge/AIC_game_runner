@@ -66,7 +66,7 @@ class DockerContainer(models.Model):
 
     def get_image_id(self):
         image_name = 'container-%d:v%d' % (self.id, self.version)
-        path = '/home/erfan/dockers/build/container-%d-v%d' % (self.id, self.version)
+        path = '/dockers/build/container-%d-v%d' % (self.id, self.version)
 
         # create a client to communicate with docker
         client = Client(base_url='unix://var/run/docker.sock')
