@@ -11,8 +11,16 @@ import json
 def compile_code(self, submit_id):
     submit = Submit.objects.get(pk=submit_id)
     submit.status = 1
+    submit.save()
+
+    container = submit.lang.compile_container
+
     sandbox = Sandbox()
-    sandbox.update_limits(cpu=[1024])
+    sandbox.update_limits(
+        cpu=[int(core) for core in container.cores.split(',')],
+        memory=container.memory,
+        swap=container.swap,
+    )
 
     cpu_scheduler = CPUScheduler(db=settings.CPU_MANAGER_REDIS_CODE_COMPILER_DB)
     parser = Parser(cpu_scheduler, settings.COMPILE_DOCKER_YML_ROOT, settings.COMPILE_DOCKER_YML_LOG_ROOT)
