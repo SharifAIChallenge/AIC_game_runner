@@ -2,7 +2,7 @@ from celery import shared_task
 from .models import Submit
 from docker_sandboxer.sandboxer import Parser, Sandbox
 from docker_sandboxer.scheduler import CPUScheduler
-from AIC_runner import settings
+from django.conf import settings
 import os
 import json
 
@@ -14,7 +14,7 @@ def compile_code(self, submit_id):
     sandbox = Sandbox()
     sandbox.update_limits(cpu=[1024])
 
-    cpu_scheduler = CPUScheduler()
+    cpu_scheduler = CPUScheduler(db=settings.CPU_MANAGER_REDIS_CODE_COMPILER_DB)
     parser = Parser(cpu_scheduler, settings.COMPILE_DOCKER_YML_ROOT, settings.COMPILE_DOCKER_YML_LOG_ROOT)
 
     submit_code = os.path.join(settings.MEDIA_ROOT, str(submit.code))
