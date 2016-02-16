@@ -134,6 +134,12 @@ MEDIA_ROOT = os.path.join(PROJECT_ROOT, *MEDIA_URL.strip("/").split("/"))
 # Example: "/home/media/media.lawrence.com/dockerfiles/"
 DOCKER_ROOT = os.path.join(PROJECT_ROOT, 'dockers')
 
+# Absolute filesystem path to the directory that will hold game related files
+# Example: "/home/media/media.lawrence.com/games/"
+GAMES_ROOT = os.path.join(PROJECT_ROOT, 'games')
+GAME_DOCKER_COMPOSE_YML_ROOT = os.path.join(GAMES_ROOT, 'yml')
+GAME_DOCKER_COMPOSE_YML_LOG_ROOT = os.path.join(GAMES_ROOT, 'yml_log')
+
 # Package/module name to import the root urlpatterns from for the project.
 ROOT_URLCONF = "%s.urls" % PROJECT_APP
 

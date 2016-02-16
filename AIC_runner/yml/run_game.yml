@@ -1,0 +1,44 @@
+server:
+  image: {{ server.image_id }}
+  environment:
+    {% for client in clients %}
+    - client{{ loop.index0 }}_name={{ client.name }}
+    - client{{ loop.index0 }}_token={{ client.token }}
+    {% endfor %}
+    - logger_token={{ logger.token }}
+    {% for container in additional_containers %}
+    - {{ container.tag }}_token={{ container.token }}
+    {% endfor %}
+  {{ server.sandboxer }}
+
+logger:
+  image: {{ logger.image_id }}
+  links:
+    - server
+  volumes:
+    - {{ logger.log_root }}:/log:rw
+  {{ logger.sandboxer }}
+
+
+{% for client in clients %}
+client{{ loop.index0 }}:
+  image: {{ client.image_id }}
+  volumes:
+    - {{ client.code }}:"/client/code.zip":ro
+  links:
+    - server
+  environment:
+    - token={{ client.token }}
+  {{ client.sandboxer }}
+{% endfor %}
+
+{% for container in additional_containers %}
+{{ container.tag }}:
+  image: {{ container.image_id }}
+  links:
+    - server
+  environment:
+    - token={{ container.token }}
+  {{ container.sandboxer }}
+
+{% endfor %}

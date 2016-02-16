@@ -21,3 +21,4 @@ def extract_zip(file_field, dst):
     file_field.open('r')
     zf = zipfile.ZipFile(file_field)
     zf.extractall(dst)
+    file_field.close()

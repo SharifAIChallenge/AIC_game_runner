@@ -5,6 +5,7 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from docker import Client
+from docker_sandboxer.sandboxer import Sandbox
 from AIC_runner.settings import DOCKER_ROOT
 from game.utils import extract_zip
 
@@ -22,9 +23,8 @@ class Competition(models.Model):
 
     players_per_game = models.PositiveIntegerField(verbose_name=_("number of players per game"), default=2, blank=True)
     supported_langs = models.ManyToManyField('game.ProgrammingLanguage', verbose_name=_("supported languages"), blank=True)
-    composer = models.FileField(verbose_name=_("docker composer"), upload_to='docker/composers',
-                                null=True, blank=True, storage=syncing_storage)
-    server = models.ForeignKey('game.DockerContainer', verbose_name=_("server container"), null=True, blank=True)
+    server = models.ForeignKey('game.DockerContainer', verbose_name=_("server container"), null=True, blank=True, related_name='+')
+    logger = models.ForeignKey('game.DockerContainer', verbose_name=_("game logger"), null=True, blank=True, related_name='+')
     additional_containers = models.ManyToManyField('game.DockerContainer', verbose_name=_("additional containers"), related_name='+', blank=True)
 
     def __unicode__(self):
@@ -82,6 +82,13 @@ class DockerContainer(models.Model):
         else:
             raise LookupError('Docker image not found: "' + self.tag + '"')
 
+    def get_sandboxer(self):
+        return Sandbox(
+            cpu=[int(core) for core in self.cores.split(',')],
+            memory=self.memory,
+            swap=self.swap,
+        )
+
 
 class Game(models.Model):
     GAME_TYPES = (
@@ -95,6 +102,7 @@ class Game(models.Model):
     competition = models.ForeignKey('game.Competition', verbose_name=_('competition'))
     title = models.CharField(verbose_name=_('title'), max_length=200)
     players = models.ManyToManyField('base.Submit', verbose_name=_('players'), through='game.GameTeamSubmit')
+    log_file = models.FileField(verbose_name=_('game log file'), upload_to='games/logs/', null=True, blank=True, storage=syncing_storage)
 
     pre_games = models.ManyToManyField('game.Game', verbose_name=_('pre games'), blank=True)
 
@@ -119,7 +127,7 @@ class GameTeamSubmit(models.Model):
     submit = models.ForeignKey('base.Submit', verbose_name=_('team submit'))
     game = models.ForeignKey('game.Game', verbose_name=_('game'))
 
-    score = models.IntegerField(verbose_name=_('score'), default=0)
+    score = models.DecimalField(verbose_name=_('score'), default=0, max_digits=25, decimal_places=10)
 
     class Meta:
         ordering = ('score',)

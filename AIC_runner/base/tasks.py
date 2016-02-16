@@ -14,14 +14,6 @@ def compile_code(self, submit_id):
     submit.save()
 
     container = submit.lang.compile_container
-
-    sandbox = Sandbox()
-    sandbox.update_limits(
-        cpu=[int(core) for core in container.cores.split(',')],
-        memory=container.memory,
-        swap=container.swap,
-    )
-
     cpu_scheduler = CPUScheduler(db=settings.CPU_MANAGER_REDIS_CODE_COMPILER_DB)
     parser = Parser(cpu_scheduler, settings.COMPILE_DOCKER_YML_ROOT, settings.COMPILE_DOCKER_YML_LOG_ROOT)
     
@@ -35,10 +27,11 @@ def compile_code(self, submit_id):
     submit.code.close()
 
     compile_context = {
-        'code_image': submit.lang.compile_container.get_image_id(),
+        'code_image': container.get_image_id(),
         'code_zip': submit_code,
         'code_log': submit_code + '_log',
         'code_compile': submit_code + '_compiled',
+        'sandboxer': container.get_sandboxer(),
     }
 
     parser.create_yml_and_run(str(submit_id), "compile.yml", compile_context)
