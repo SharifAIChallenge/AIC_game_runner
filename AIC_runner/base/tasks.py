@@ -24,7 +24,11 @@ def compile_code(self, submit_id):
 
     cpu_scheduler = CPUScheduler(db=settings.CPU_MANAGER_REDIS_CODE_COMPILER_DB)
     parser = Parser(cpu_scheduler, settings.COMPILE_DOCKER_YML_ROOT, settings.COMPILE_DOCKER_YML_LOG_ROOT)
-
+    
+    # make sure submitted code is synced
+    submit.code.open()
+    submit.code.close()
+    
     submit_code = os.path.join(settings.MEDIA_ROOT, str(submit.code))
     compile_context = {
         'code_image': submit.lang.compile_container.get_image_id(),
@@ -39,8 +43,10 @@ def compile_code(self, submit_id):
         data = json.load(data_file)
 
     submit.status = 2 if data['compile_success'] else 3
-    submit.compile_log_file = '' if 'compile_error' not in data else data['compile_error']
-    submit.compiled_code = compile_context['code_compile'] + '/compiled.zip'
+    submit.compile_log_file = 'OK' if 'compile_error' not in data else data['compile_error']
+    submit.compile_log_file = submit.compile_log_file[:1000]
+    submit.compiled_code = str(submit.code) + '_compiled/compiled.zip'
+    print(submit.compiled_code)
     submit.save()
     print("Compile end %s" % data)
 
