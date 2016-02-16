@@ -46,10 +46,10 @@ class ProgrammingLanguage(models.Model):
 
 class DockerContainer(models.Model):
     tag = models.CharField(verbose_name=_('tag'), max_length=50)
-    description = models.TextField(verbose_name=_('description'))
+    description = models.TextField(verbose_name=_('description'), blank=True)
     dockerfile_src = models.FileField(verbose_name=_('dockerfile source'), upload_to='docker/dockerfiles', storage=syncing_storage, null=True, blank=True)
     version = models.PositiveSmallIntegerField(verbose_name=_('version'), default=1)
-    cores = models.CommaSeparatedIntegerField(verbose_name=_('cores'), default=[1024], max_length=512)
+    cores = models.CommaSeparatedIntegerField(verbose_name=_('cores'), default=1024, max_length=512)
     memory = models.PositiveIntegerField(verbose_name=_('memory'), default=100*1024*1024)
     swap = models.PositiveIntegerField(verbose_name=_('swap'), default=0)
     build_log = models.TextField(verbose_name=_('build log'), blank=True)
