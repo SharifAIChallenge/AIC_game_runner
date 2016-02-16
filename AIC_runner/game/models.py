@@ -72,7 +72,6 @@ class DockerContainer(models.Model):
         # build the docker file
         extract_zip(self.dockerfile_src, path)
         log = list(client.build(path=path, rm=True, tag=image_name))
-        print(log)
         self.build_log = "".join([str(i)+': '+str(log[i]) for i in range(len(log))])
         self.save()
 
