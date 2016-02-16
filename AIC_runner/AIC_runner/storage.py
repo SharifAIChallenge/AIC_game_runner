@@ -11,7 +11,7 @@ class SyncingStorage(QueuedStorage):
     def open(self, name, mode='rb'):
         if self.using_remote(name):
             if not self.remote.exists(name):
-                return None
+                raise IOError('File has not been synced yet.')
             local_file = self.get_storage(name).open(name, 'rb')
             content = File(local_file)
             self.local._save(name, content)

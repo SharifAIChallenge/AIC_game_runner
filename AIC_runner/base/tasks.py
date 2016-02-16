@@ -26,16 +26,12 @@ def compile_code(self, submit_id):
     parser = Parser(cpu_scheduler, settings.COMPILE_DOCKER_YML_ROOT, settings.COMPILE_DOCKER_YML_LOG_ROOT)
     
     # make sure submitted code is synced
-    submit_code_file = None
     try:
-        submit_code_file = submit.code.open()
-        if submit_code_file is None:
-            raise self.retry(countdown=settings.FILE_SYNC_DELAY_SECONDS,
-                             max_retries=settings.FILE_SYNC_DELAY_MAX_RETRIES)
+        submit.code.open()
     except IOError as exc:
         raise self.retry(countdown=settings.FILE_SYNC_DELAY_SECONDS,
                          max_retries=settings.FILE_SYNC_DELAY_MAX_RETRIES)
-    submit_code = submit_code_file.name
+    submit_code = os.path.join(settings.MEDIA_ROOT, str(submit.code))
     submit.code.close()
 
     compile_context = {
