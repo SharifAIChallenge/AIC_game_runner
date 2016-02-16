@@ -4,5 +4,5 @@ compile:
    - {{ code_zip }}:/compile/code.zip
    - {{ code_compile }}:/compile/compiled
    - {{ code_log }}:/compile/log
-   - {{ sandboxer }}
+   {{ sandboxer }}
 
