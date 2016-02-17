@@ -1,7 +1,7 @@
 compile:
   image: {{ code_image }}
   volumes:
-   - {{ code_zip }}:/compile/code.zip
-   - {{ code_compile }}:/compile/compiled
-   - {{ code_log }}:/compile/log
+   - {{ code_zip }}:/compile/code.zip:ro
+   - {{ code_compile }}:/compile/compiled:rw
+   - {{ code_log }}:/compile/log:rw
 

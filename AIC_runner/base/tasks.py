@@ -41,7 +41,7 @@ def compile_code(self, submit_id):
 
     submit.status = 3 if data['errors'] else 2
     submit.compile_log_file = (''.join(data['errors']) or 'OK')[:1000]
-    submit.compiled_code = str(submit.code) + '_compiled/compiled.zip'
+    submit.compiled_code = compile_context['code_compile'] + '/compiled.zip'
     print(submit.compiled_code)
     submit.save()
     print("Compile end %s" % data)
