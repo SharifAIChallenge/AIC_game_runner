@@ -39,8 +39,9 @@ def compile_code(self, submit_id):
     with open(compile_context['code_log'] + '/status.log') as data_file:
         data = json.load(data_file)
 
+    print('errors: %s' % str(data['errors']))
     submit.status = 3 if data['errors'] else 2
-    submit.compile_log_file = (''.join(data['errors']) or 'OK')[:1000]
+    submit.compile_log_file = ('\n'.join([str(error) for error in data['errors']]) or 'OK')[:1000]
     submit.compiled_code = compile_context['code_compile'] + '/compiled.zip'
     print(submit.compiled_code)
     submit.save()
