@@ -67,9 +67,11 @@ class DockerContainer(models.Model):
         # check if already built
         images = client.images(name=image_name)
         if images:
+            print('docker image exists')
             return images[0]['Id']
 
         # build the docker file
+        print('building new docker image')
         extract_zip(self.dockerfile_src, path)
         log = list(client.build(path=path, rm=True, tag=image_name))
         self.build_log = "".join([str(i)+': '+str(log[i]) for i in range(len(log))])
