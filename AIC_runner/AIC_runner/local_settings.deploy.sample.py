@@ -61,10 +61,8 @@ FILE_SYNC_DELAY_MAX_RETRIES = 10
 
 ### STORAGE SETTINGS ###
 
-from AIC_runner.storage import SyncingStorage
+from AIC_runner.storage import SyncingHashStorage
 
-BASE_AND_GAME_STORAGE = SyncingStorage(
-    'storages.backends.hashpath.HashPathStorage',
-    "storages.backends.sftpstorage.SFTPStorage"
-)
+BASE_AND_GAME_STORAGE = SyncingHashStorage("storages.backends.sftpstorage.SFTPStorage")
+
 
