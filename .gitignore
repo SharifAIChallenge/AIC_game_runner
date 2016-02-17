@@ -5,6 +5,7 @@
 .coverage
 local_settings.py
 /static
-/media
-/dockers
-/games
+AIC_runner/media
+AIC_runner/dockers
+AIC_runner/games
+AIC_runner/yml_log
