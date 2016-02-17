@@ -4,4 +4,4 @@ compile:
    - {{ code_zip }}:/compile/code.zip:ro
    - {{ code_compile }}:/compile/compiled:rw
    - {{ code_log }}:/compile/log:rw
-
+  {{ sandboxer }}
