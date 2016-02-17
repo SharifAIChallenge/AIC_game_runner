@@ -39,7 +39,7 @@ def compile_code(self, submit_id):
     with open(compile_context['code_log'] + '/status.log') as data_file:
         data = json.load(data_file)
 
-    print('stage: %d, errors: %s' % (data['stage'], str(data['errors'])))
+    print('errors: %s' % str(data['errors']))
     submit.status = 3 if data['errors'] else 2
     if data['errors']:
         error = 'Error at stage %d of compile:\n' % data['stage']
