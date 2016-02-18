@@ -17,6 +17,8 @@ logger:
     - server
   volumes:
     - {{ logger.log_root }}:/log:rw
+  environment:
+    - token={{ logger.token }}
   {{ logger.sandboxer }}
 
 
@@ -24,7 +26,7 @@ logger:
 client{{ loop.index0 }}:
   image: {{ client.image_id }}
   volumes:
-    - {{ client.code }}:"/client/code.zip":ro
+    - {{ client.code }}:/game/code.zip:ro
   links:
     - server
   environment:

@@ -19,6 +19,7 @@ def run_game(self, game_id):
 
     competition_dir = os.path.join(GAMES_ROOT, 'competitions', str(game.competition.id))
     game_dir = os.path.join(competition_dir, str(game.id))
+    log_dir = os.path.join(game_dir, 'logs')
 
     # yml context
     print('preparing yml context')
@@ -30,8 +31,10 @@ def run_game(self, game_id):
         'logger': {
             'image_id': game.competition.logger.get_image_id(),
             'sandboxer': game.competition.logger.get_sandboxer(),
-            'log_file': os.path.join(game_dir, 'game.log'),
-            'scores_file': os.path.join(game_dir, 'game.scr')
+            'token': generate_random_token(),
+            'log_root': log_dir,
+            'log_file': os.path.join(log_dir, 'game.log'),
+            'scores_file': os.path.join(log_dir, 'game.scr')
         },
         'clients': [
             {
@@ -39,6 +42,7 @@ def run_game(self, game_id):
                 'sandboxer': submit.lang.execute_container.get_sandboxer(),
                 'name': submit.team.name,
                 'token': generate_random_token(),
+                'root': os.path.join(game_dir, 'clients', str(i)),
                 'code': os.path.join(game_dir, 'clients', str(i), 'code.zip'),
                 'submit': submit,
             }
@@ -49,6 +53,7 @@ def run_game(self, game_id):
                 'image_id': container.get_image_id(),
                 'sandboxer': container.get_sandboxer(),
                 'tag': container.tag,
+                'token': generate_random_token(),
             }
             for container in game.competition.additional_containers.all()
         ],
@@ -60,8 +65,9 @@ def run_game(self, game_id):
     for client in context['clients']:
         code = client['submit'].compiled_code
         code.open()
-        shutil.copyfile(code, client['code'])
         code.close()
+        make_dir(client['root'])
+        shutil.copyfile(code.path, client['code'])
 
     # run!
     print('running')
