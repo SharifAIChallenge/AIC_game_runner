@@ -76,7 +76,7 @@ def run_game(self, game_id):
 
     try:
         with open(context['logger']['log_file']) as log_file:
-            game.log_file = File(log_file)
+            game.log_file.save('games/logs/game_%d.log' % game.id, File(log_file), save=True)
     except IOError:
         print('game log file does not exists.')
 
