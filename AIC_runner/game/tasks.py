@@ -62,12 +62,16 @@ def run_game(self, game_id):
     # prepare game files
     print('preparing game files')
     make_dir(game_dir)
-    for client in context['clients']:
-        code = client['submit'].compiled_code
-        code.open()
-        code.close()
-        make_dir(client['root'])
-        shutil.copyfile(code.path, client['code'])
+    try:
+        for client in context['clients']:
+            code = client['submit'].compiled_code
+            code.open()
+            code.close()
+            make_dir(client['root'])
+            shutil.copyfile(code.path, client['code'])
+    except IOError:
+        raise self.retry(countdown=settings.FILE_SYNC_DELAY_SECONDS,
+                         max_retries=settings.FILE_SYNC_DELAY_MAX_RETRIES)
 
     # run!
     print('creating cpu scheduler & parser')
