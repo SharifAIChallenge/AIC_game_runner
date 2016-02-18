@@ -1,5 +1,6 @@
 server:
   image: {{ server.image_id }}
+  manager: true
   environment:
     {% for client in clients %}
     - client{{ loop.index0 }}_name={{ client.name }}
@@ -26,7 +27,7 @@ logger:
 client{{ loop.index0 }}:
   image: {{ client.image_id }}
   volumes:
-    - {{ client.code }}:/game/code.zip:ro
+    - {{ client.code }}:/game/client.zip:ro
   links:
     - server
   environment:

@@ -10,7 +10,7 @@ from AIC_runner.settings import GAMES_ROOT
 from django.conf import settings
 
 from game.models import Game, GameTeamSubmit
-from game.utils import make_dir, extract_zip, generate_random_token
+from game.utils import make_dir, generate_random_token
 
 
 @shared_task(bind=True, queue='game_queue')
@@ -70,11 +70,14 @@ def run_game(self, game_id):
         shutil.copyfile(code.path, client['code'])
 
     # run!
-    print('running')
+    print('creating cpu scheduler & parser')
     cpu_scheduler = CPUScheduler(db=settings.CPU_MANAGER_REDIS_GAME_RUNNER_DB)
     parser = Parser(cpu_scheduler, settings.GAME_DOCKER_COMPOSE_YML_ROOT, settings.GAME_DOCKER_COMPOSE_YML_LOG_ROOT)
 
     try:
+        print('running')
+        game.status = 2
+        game.save()
         parser.create_yml_and_run(str(game.id), "run_game.yml", context, timeout=game.competition.execution_time_limit)
         print('game finished, saving the results')
     except TimeoutError:
@@ -89,11 +92,13 @@ def run_game(self, game_id):
     try:
         with open(context['logger']['scores_file']) as scores_file:
             scores = json.load(scores_file)
-            for client in context['clients']:
-                gts = GameTeamSubmit.get(game=game, submit=client['submit'])
-                gts.score = scores[gts.submit.id]
+            for i, client in enumerate(context['clients']):
+                gts = GameTeamSubmit.objects.get(game=game, submit=client['submit'])
+                gts.score = scores[i]
                 gts.save()
     except IOError:
         print('game score file does not exists.')
 
+    game.status = 3
+    game.save()
     print('saving completed')
