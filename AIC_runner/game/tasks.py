@@ -67,17 +67,27 @@ def run_game(self, game_id):
     print('running')
     cpu_scheduler = CPUScheduler(db=settings.CPU_MANAGER_REDIS_GAME_RUNNER_DB)
     parser = Parser(cpu_scheduler, settings.GAME_DOCKER_COMPOSE_YML_ROOT, settings.GAME_DOCKER_COMPOSE_YML_LOG_ROOT)
-    parser.create_yml_and_run(str(game.id), "run_game.yml", context)
-    print('game finished, saving the results')
 
-    with open(context['logger']['log_file']) as log_file:
-        game.log_file = File(log_file)
+    try:
+        parser.create_yml_and_run(str(game.id), "run_game.yml", context, timeout=game.competition.execution_time_limit)
+        print('game finished, saving the results')
+    except TimeoutError:
+        print('game timeout exceeded')
 
-    with open(context['logger']['scores_file']) as scores_file:
-        scores = json.load(scores_file)
-        for client in context['clients']:
-            gts = GameTeamSubmit.get(game=game, submit=client['submit'])
-            gts.score = scores[gts.submit.id]
-            gts.save()
+    try:
+        with open(context['logger']['log_file']) as log_file:
+            game.log_file = File(log_file)
+    except IOError:
+        print('game log file does not exists.')
+
+    try:
+        with open(context['logger']['scores_file']) as scores_file:
+            scores = json.load(scores_file)
+            for client in context['clients']:
+                gts = GameTeamSubmit.get(game=game, submit=client['submit'])
+                gts.score = scores[gts.submit.id]
+                gts.save()
+    except IOError:
+        print('game score file does not exists.')
 
     print('saving completed')
