@@ -17,8 +17,8 @@ from game.utils import make_dir, extract_zip, generate_random_token
 def run_game(self, game_id):
     game = Game.objects.get(id=game_id)
 
-    competition_dir = os.path.join(GAMES_ROOT, 'competitions', game.competition.id)
-    game_dir = os.path.join(competition_dir, game.id)
+    competition_dir = os.path.join(GAMES_ROOT, 'competitions', str(game.competition.id))
+    game_dir = os.path.join(competition_dir, str(game.id))
 
     # yml context
     print('preparing yml context')
@@ -39,7 +39,7 @@ def run_game(self, game_id):
                 'sandboxer': submit.lang.execute_container.get_sandboxer(),
                 'name': submit.team.name,
                 'token': generate_random_token(),
-                'code': os.path.join(game_dir, 'clients', i, 'code.zip'),
+                'code': os.path.join(game_dir, 'clients', str(i), 'code.zip'),
                 'submit': submit,
             }
             for i, submit in enumerate(game.players.all())
