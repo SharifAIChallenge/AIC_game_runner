@@ -2,6 +2,8 @@ from celery import shared_task
 from .models import Submit
 from docker_sandboxer.sandboxer import Parser, Sandbox
 from docker_sandboxer.scheduler import CPUScheduler
+from django.core.files import File
+
 from django.conf import settings
 import os
 import json
@@ -47,7 +49,9 @@ def compile_code(self, submit_id):
     else:
         error = 'OK'
     submit.compile_log_file = error[:1000]
-    submit.compiled_code = str(submit.code) + '_compiled' + '/compiled.zip'
+    compile_code_name = submit_code + '_compiled' + '/compiled.zip'
+    with open(compile_code_name, 'rb') as compile_code_file:
+        submit.compiled_code.save(str(submit.id) + '_compiled.zip', File(compile_code_file), save=True)
     print(submit.compiled_code)
     submit.save()
     print("Compile end %s" % data)
