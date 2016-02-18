@@ -36,23 +36,26 @@ def compile_code(self, submit_id):
         'sandboxer': container.get_sandboxer(),
     }
 
-    parser.create_yml_and_run(str(submit_id), "compile.yml", compile_context)
+    try:
+        parser.create_yml_and_run(str(submit_id), "compile.yml", compile_context, timeout=submit.team.competition.compile_time_limit)
 
-    with open(compile_context['code_log'] + '/status.log') as data_file:
-        data = json.load(data_file)
+        with open(compile_context['code_log'] + '/status.log') as data_file:
+            data = json.load(data_file)
 
-    print('errors: %s' % str(data['errors']))
-    submit.status = 3 if data['errors'] else 2
-    if data['errors']:
-        error = 'Error at stage %d of compile:\n' % data['stage']
-        error += '\n'.join([str(err) for err in data['errors']])
-    else:
-        error = 'OK'
-    submit.compile_log_file = error[:1000]
-    compile_code_name = submit_code + '_compiled' + '/compiled.zip'
-    with open(compile_code_name, 'rb') as compile_code_file:
-        submit.compiled_code.save(str(submit.id) + '_compiled.zip', File(compile_code_file), save=True)
-    print(submit.compiled_code)
+        print('errors: %s' % str(data['errors']))
+        submit.status = 3 if data['errors'] else 2
+        if data['errors']:
+            error = 'Error at stage %d of compile:\n' % data['stage']
+            error += '\n'.join([str(err) for err in data['errors']])
+        else:
+            error = 'OK'
+        submit.compile_log_file = error[:1000]
+        submit.compiled_code = str(submit.code) + '_compiled' + '/compiled.zip'
+        print(submit.compiled_code)
+    except TimeoutError:
+        submit.status = 3
+        submit.compile_log_file = 'Compile time limit exceeded.'
+
     submit.save()
     print("Compile end %s" % data)
 
