@@ -49,14 +49,15 @@ def compile_code(self, submit_id):
             error += '\n'.join([str(err) for err in data['errors']])
         else:
             error = 'OK'
+            compile_code_name = submit_code + '_compiled' + '/compiled.zip'
+            with open(compile_code_name, 'rb') as compile_code_file:
+                submit.compiled_code.save(str(submit.id) + '_compiled.zip', File(compile_code_file), save=True)
+            print(submit.compiled_code)
         submit.compile_log_file = error[:1000]
-        compile_code_name = submit_code + '_compiled' + '/compiled.zip'
-        with open(compile_code_name, 'rb') as compile_code_file:
-            submit.compiled_code.save(str(submit.id) + '_compiled.zip', File(compile_code_file), save=True)
-        print(submit.compiled_code)
     except TimeoutError:
         submit.status = 3
         submit.compile_log_file = 'Compile time limit exceeded.'
+        data = 'Compile time limit exceeded.'
 
     submit.save()
     print("Compile end %s" % data)
