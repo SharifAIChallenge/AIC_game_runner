@@ -17,7 +17,8 @@ from game.utils import make_dir, generate_random_token
 def run_game(self, game_id):
     game = Game.objects.get(id=game_id)
 
-    competition_dir = os.path.join(GAMES_ROOT, 'competitions', str(game.competition.id))
+    competition = game.players.all()[0].team.competition # this is the worst modeling I've ever seen!
+    competition_dir = os.path.join(GAMES_ROOT, 'competitions', str(competition.id))
     game_dir = os.path.join(competition_dir, str(game.id))
     log_dir = os.path.join(game_dir, 'logs')
 
@@ -25,12 +26,13 @@ def run_game(self, game_id):
     print('preparing yml context')
     context = {
         'server': {
-            'image_id': game.competition.server.get_image_id(),
-            'sandboxer': game.competition.server.get_sandboxer(),
+            'image_id': competition.server.get_image_id(),
+            'sandboxer': competition.server.get_sandboxer(),
+            # 'config_file': game.game_confi.
         },
         'logger': {
-            'image_id': game.competition.logger.get_image_id(),
-            'sandboxer': game.competition.logger.get_sandboxer(),
+            'image_id': competition.logger.get_image_id(),
+            'sandboxer': competition.logger.get_sandboxer(),
             'token': generate_random_token(),
             'log_root': log_dir,
             'log_file': os.path.join(log_dir, 'game.log'),
@@ -55,7 +57,7 @@ def run_game(self, game_id):
                 'tag': container.tag,
                 'token': generate_random_token(),
             }
-            for container in game.competition.additional_containers.all()
+            for container in competition.additional_containers.all()
         ],
     }
 
@@ -82,7 +84,7 @@ def run_game(self, game_id):
         print('running')
         game.status = 2
         game.save()
-        parser.create_yml_and_run(str(game.id), "run_game.yml", context, timeout=game.competition.execution_time_limit)
+        parser.create_yml_and_run(str(game.id), "run_game.yml", context, timeout=competition.execution_time_limit)
         print('game finished, saving the results')
     except TimeoutError:
         print('game timeout exceeded')

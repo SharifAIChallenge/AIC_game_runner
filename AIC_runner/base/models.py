@@ -198,22 +198,3 @@ class GameRequest(models.Model):
         if last_time:
             now = timezone.now()
             return int((now - last_time).total_seconds() / 60)
-
-    def accept(self, accepted):
-        wait = GameRequest.check_last_time(self.requester)
-        if wait:
-            return wait
-
-        self.accepted = accepted
-        self.accept_time = timezone.now()
-        if accepted:
-            self.game = Game.objects.create(
-                competition=self.requestee.competition,
-                title=_('friendly game'),
-                game_type=1,
-            )
-            # TODO: better for teams to have final submit
-            GameTeamSubmit.objects.create(game=self.game, submit=self.requestee.submit_set.last())
-            GameTeamSubmit.objects.create(game=self.game, submit=self.requester.submit_set.last())
-            self.game.run()
-        self.save()
