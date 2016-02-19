@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
+import datetime
 import uuid
 
 import re
@@ -42,7 +43,11 @@ class Team(models.Model):
     show = models.BooleanField(default=True, verbose_name=_("show team in public list"))
     final = models.BooleanField(default=False, verbose_name=_("team is final"))
 
-    will_come = models.PositiveSmallIntegerField(verbose_name=_("will come to site"), choices=WILL_COME_CHOICES, default=2)
+    final_submission = models.ForeignKey('base.Submit', verbose_name=_('final submission'),
+                                         related_name="team_final_submission", null=True)
+
+    will_come = models.PositiveSmallIntegerField(verbose_name=_("will come to site"), choices=WILL_COME_CHOICES,
+                                                 default=2)
 
     def __unicode__(self):
         return 'Team%d(%s)' % (self.id, self.name)
@@ -57,6 +62,7 @@ class Team(models.Model):
 
 def team_code_directory_path(instance, filename):
     return 'submit/code/{0}/{1}'.format(instance.team.id, filename)
+
 
 def team_compiled_code_directory_path(instance, filename):
     return 'submit/compile/{0}/{1}'.format(instance.team.id, filename)
@@ -178,6 +184,7 @@ class GameRequest(models.Model):
     made_time = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     accepted = models.NullBooleanField(_('state'))
     accept_time = models.DateTimeField(_('accept time'), null=True, blank=True)
+    game_config = models.ForeignKey('game.GameConfiguration', verbose_name=_('game configuration'), null=False)
 
     game = models.ForeignKey('game.Game', null=True)
 
@@ -185,16 +192,31 @@ class GameRequest(models.Model):
         return self.accept_time is not None
 
     @classmethod
-    def create(cls, requester, requestee):
+    def create(cls, requester, requestee, game_config):
         wait = cls.check_last_time(requester)
         if wait:
             return wait
 
-        cls.objects.create(requester=requester, requestee=requestee)
+        cls.objects.create(requester=requester, requestee=requestee, game_config=game_config)
 
     @classmethod
     def check_last_time(cls, team):
         last_time = cls.objects.filter(requester=team, accepted=True).aggregate(Max('accept_time'))['accept_time__max']
         if last_time:
             now = timezone.now()
-            return int((now - last_time).total_seconds() / 60)
+            one_hour_before = now - datetime.timedelta(hours=1)
+            seconds = (last_time - one_hour_before).total_seconds()
+            if seconds > 0:
+                return int(seconds / 60)
+        return False
+
+    def accept(self, accepted):
+        wait = GameRequest.check_last_time(self.requester)
+        if wait:
+            return wait
+
+        self.accepted = accepted
+        self.accept_time = timezone.now()
+        if accepted:
+            Game.create([self.requestee, self.requester], game_conf=self.game_config)
+        self.save()
