@@ -27,7 +27,7 @@ def run_game(self, game_id):
         'server': {
             'image_id': competition.server.get_image_id(),
             'sandboxer': competition.server.get_sandboxer(),
-            'config_file': game.game_config,
+            'game_config': game.game_config.config.path,
         },
         'logger': {
             'image_id': competition.logger.get_image_id(),
@@ -63,8 +63,8 @@ def run_game(self, game_id):
     print('preparing game files')
     make_dir(game_dir)
     try:
-        game.game_config.open()
-        game.game_config.close()
+        game.game_config.config.open()
+        game.game_config.config.close()
         for client in context['clients']:
             code = client['submit'].compiled_code
             code.open()
