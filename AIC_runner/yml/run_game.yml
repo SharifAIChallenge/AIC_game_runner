@@ -1,6 +1,8 @@
 server:
   image: {{ server.image_id }}
   manager: true
+  volumes:
+    - {{ server.game_config }}:/game/config.zip:ro
   environment:
     {% for client in clients %}
     - client{{ loop.index0 }}_name={{ client.name }}

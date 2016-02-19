@@ -5,7 +5,6 @@ from celery import shared_task
 from django.core.files import File
 from docker_sandboxer.sandboxer import Parser
 from docker_sandboxer.scheduler import CPUScheduler
-from pip._vendor.distlib._backport import shutil
 from AIC_runner.settings import GAMES_ROOT
 from django.conf import settings
 
@@ -28,7 +27,7 @@ def run_game(self, game_id):
         'server': {
             'image_id': competition.server.get_image_id(),
             'sandboxer': competition.server.get_sandboxer(),
-            # 'config_file': game.game_confi.
+            'config_file': game.game_config,
         },
         'logger': {
             'image_id': competition.logger.get_image_id(),
@@ -44,7 +43,6 @@ def run_game(self, game_id):
                 'sandboxer': submit.lang.execute_container.get_sandboxer(),
                 'name': submit.team.name,
                 'token': generate_random_token(),
-                'root': os.path.join(game_dir, 'clients', str(i)),
                 'code': os.path.join(game_dir, 'clients', str(i), 'code.zip'),
                 'submit': submit,
             }
@@ -65,12 +63,12 @@ def run_game(self, game_id):
     print('preparing game files')
     make_dir(game_dir)
     try:
+        game.game_config.open()
+        game.game_config.close()
         for client in context['clients']:
             code = client['submit'].compiled_code
             code.open()
             code.close()
-            make_dir(client['root'])
-            shutil.copyfile(code.path, client['code'])
     except IOError:
         raise self.retry(countdown=settings.FILE_SYNC_DELAY_SECONDS,
                          max_retries=settings.FILE_SYNC_DELAY_MAX_RETRIES)
