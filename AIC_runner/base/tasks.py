@@ -50,6 +50,8 @@ def compile_code(self, submit_id):
         else:
             error = 'OK'
             compile_code_name = submit_code + '_compiled' + '/compiled.zip'
+            submit.team.final_submit = submit
+            submit.team.save()
             with open(compile_code_name, 'rb') as compile_code_file:
                 submit.compiled_code.save(str(submit.id) + '_compiled.zip', File(compile_code_file), save=True)
             print(submit.compiled_code)
