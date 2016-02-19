@@ -17,9 +17,11 @@ from game.utils import make_dir, generate_random_token
 def run_game(self, game_id):
     game = Game.objects.get(id=game_id)
     try:
+        game.status = 1
+        game.save()
         run_game_unsafe(self, game)
     except Retry as e:
-        game.status = 1
+        game.status = 0
         game.error_log = '\n'.join([str(arg) for arg in e.args])
         game.save()
         raise e
