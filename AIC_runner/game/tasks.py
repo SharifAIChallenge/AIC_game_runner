@@ -43,10 +43,10 @@ def run_game(self, game_id):
                 'sandboxer': submit.lang.execute_container.get_sandboxer(),
                 'name': submit.team.name,
                 'token': generate_random_token(),
-                'code': os.path.join(game_dir, 'clients', str(i), 'code.zip'),
+                'code': submit.code.path,
                 'submit': submit,
             }
-            for i, submit in enumerate(game.players.all())
+            for submit in game.players.all()
         ],
         'additional_containers': [
             {
