@@ -89,11 +89,11 @@ class DockerContainer(models.Model):
         # check if already built
         images = client.images(name=image_name)
         if images:
-            print('docker image exists')
+            print('docker image exists: %s with name %s' % (self.tag, image_name))
             return images[0]['Id']
 
         # build the docker file
-        print('building new docker image')
+        print('building new docker image: %s with name %s' % (self.tag, image_name))
         extract_zip(self.dockerfile_src, path)
         log = list(client.build(path=path, rm=True, tag=image_name))
         self.build_log = "".join([str(i)+': '+str(log[i]) for i in range(len(log))])
@@ -126,12 +126,14 @@ class Game(models.Model):
         (1, _('queued')),
         (2, _('running')),
         (3, _('finished')),
+        (4, _('failed')),
     )
 
     timestamp = models.DateTimeField(verbose_name=_('timestamp'), auto_now=True)
     title = models.CharField(verbose_name=_('title'), max_length=200)
     players = models.ManyToManyField('base.Submit', verbose_name=_('players'), through='game.GameTeamSubmit')
     log_file = models.FileField(verbose_name=_('game log file'), upload_to='games/logs/', null=True, blank=True, storage=syncing_storage)
+    error_log = models.TextField(verbose_name=_('error log'), null=True, blank=True)
     status = models.PositiveSmallIntegerField(verbose_name=_('status'), choices=STATUSES, default=0)
 
     pre_games = models.ManyToManyField('game.Game', verbose_name=_('pre games'), blank=True)

@@ -2,6 +2,7 @@ import os
 import json
 
 from celery import shared_task
+from celery.exceptions import Retry
 from django.core.files import File
 from docker_sandboxer.sandboxer import Parser
 from docker_sandboxer.scheduler import CPUScheduler
@@ -15,8 +16,22 @@ from game.utils import make_dir, generate_random_token
 @shared_task(bind=True, queue='game_queue')
 def run_game(self, game_id):
     game = Game.objects.get(id=game_id)
+    try:
+        run_game_unsafe(self, game)
+    except Retry as e:
+        game.status = 1
+        game.error_log = '\n'.join([str(arg) for arg in e.args])
+        game.save()
+        raise e
+    except Exception as e:
+        game.status = 4
+        game.error_log = '\n'.join([str(arg) for arg in e.args])
+        game.save()
+        raise e
 
-    competition = game.players.all()[0].team.competition # this is the worst modeling I've ever seen!
+
+def run_game_unsafe(self, game):
+    competition = game.players.all()[0].team.competition  # this is the worst modeling I've ever seen! :D
     competition_dir = os.path.join(GAMES_ROOT, 'competitions', str(competition.id))
     game_dir = os.path.join(competition_dir, str(game.id))
     log_dir = os.path.join(game_dir, 'logs')
@@ -43,7 +58,7 @@ def run_game(self, game_id):
                 'sandboxer': submit.lang.execute_container.get_sandboxer(),
                 'name': submit.team.name,
                 'token': generate_random_token(),
-                'code': submit.code.path,
+                'code': submit.compiled_code.path,
                 'submit': submit,
             }
             for submit in game.players.all()
@@ -78,11 +93,13 @@ def run_game(self, game_id):
     cpu_scheduler = CPUScheduler(db=settings.CPU_MANAGER_REDIS_GAME_RUNNER_DB)
     parser = Parser(cpu_scheduler, settings.GAME_DOCKER_COMPOSE_YML_ROOT, settings.GAME_DOCKER_COMPOSE_YML_LOG_ROOT)
 
-    try:
-        print('running')
+    def set_game_running():
         game.status = 2
         game.save()
-        parser.create_yml_and_run(str(game.id), "run_game.yml", context, timeout=competition.execution_time_limit)
+
+    try:
+        print('waiting for resources')
+        parser.create_yml_and_run(str(game.id), "run_game.yml", context, timeout=competition.execution_time_limit, callback_before_run=set_game_running)
         print('game finished, saving the results')
     except TimeoutError:
         print('game timeout exceeded')
@@ -90,8 +107,9 @@ def run_game(self, game_id):
     try:
         with open(context['logger']['log_file']) as log_file:
             game.log_file.save('games/logs/game_%d.log' % game.id, File(log_file), save=True)
-    except IOError:
+    except IOError as e:
         print('game log file does not exists.')
+        raise e
 
     try:
         with open(context['logger']['scores_file']) as scores_file:
@@ -100,9 +118,11 @@ def run_game(self, game_id):
                 gts = GameTeamSubmit.objects.get(game=game, submit=client['submit'])
                 gts.score = scores[i]
                 gts.save()
-    except IOError:
+    except IOError as e:
         print('game score file does not exists.')
+        raise e
 
     game.status = 3
+    game.error_log = ''
     game.save()
     print('saving completed')
