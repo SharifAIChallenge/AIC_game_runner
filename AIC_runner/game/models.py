@@ -6,7 +6,6 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from docker import Client
-from game.tasks import run_game
 from docker_sandboxer.sandboxer import Sandbox
 from game.utils import extract_zip
 
