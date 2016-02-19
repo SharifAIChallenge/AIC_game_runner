@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
+import datetime
 import uuid
 
 import re
@@ -42,7 +43,8 @@ class Team(models.Model):
     show = models.BooleanField(default=True, verbose_name=_("show team in public list"))
     final = models.BooleanField(default=False, verbose_name=_("team is final"))
 
-    will_come = models.PositiveSmallIntegerField(verbose_name=_("will come to site"), choices=WILL_COME_CHOICES, default=2)
+    will_come = models.PositiveSmallIntegerField(verbose_name=_("will come to site"), choices=WILL_COME_CHOICES,
+                                                 default=2)
 
     def __unicode__(self):
         return 'Team%d(%s)' % (self.id, self.name)
@@ -57,6 +59,7 @@ class Team(models.Model):
 
 def team_code_directory_path(instance, filename):
     return 'submit/code/{0}/{1}'.format(instance.team.id, filename)
+
 
 def team_compiled_code_directory_path(instance, filename):
     return 'submit/compile/{0}/{1}'.format(instance.team.id, filename)
@@ -197,4 +200,18 @@ class GameRequest(models.Model):
         last_time = cls.objects.filter(requester=team, accepted=True).aggregate(Max('accept_time'))['accept_time__max']
         if last_time:
             now = timezone.now()
-            return int((now - last_time).total_seconds() / 60)
+            one_hour_before = now - datetime.timedelta(hours=1)
+            if one_hour_before - last_time > 0:
+                return int((one_hour_before - last_time).total_seconds() / 60)
+        return False
+
+    def accept(self, accepted):
+        wait = GameRequest.check_last_time(self.requester)
+        if wait:
+            return wait
+
+        self.accepted = accepted
+        self.accept_time = timezone.now()
+        if accepted:
+            Game.create([self.requestee, self.requester])
+        self.save()
