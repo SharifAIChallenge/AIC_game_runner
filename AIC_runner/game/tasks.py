@@ -40,6 +40,10 @@ def run_game_unsafe(self, game):
 
     # yml context
     print('preparing yml context')
+
+    game.game_config.config.open()
+    game.game_config.config.close()
+
     context = {
         'server': {
             'image_id': competition.server.get_image_id(),
@@ -80,8 +84,6 @@ def run_game_unsafe(self, game):
     print('preparing game files')
     make_dir(game_dir)
     try:
-        game.game_config.config.open()
-        game.game_config.config.close()
         for client in context['clients']:
             code = client['submit'].compiled_code
             code.open()
