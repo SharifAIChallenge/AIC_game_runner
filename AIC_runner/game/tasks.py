@@ -61,7 +61,7 @@ def run_game_unsafe(self, game):
                 'sandboxer': submit.lang.execute_container.get_sandboxer(),
                 'id': submit.team.id,
                 'token': generate_random_token(),
-                'code': open_and_get_path(submit.compiled_code.path),
+                'code': open_and_get_path(submit.compiled_code),
                 'submit': submit,
             }
             for submit in game.players.all()
