@@ -41,14 +41,11 @@ def run_game_unsafe(self, game):
     # yml context
     print('preparing yml context')
 
-    game.game_config.config.open()
-    game.game_config.config.close()
-
     context = {
         'server': {
             'image_id': competition.server.get_image_id(),
             'sandboxer': competition.server.get_sandboxer(),
-            'game_config': game.game_config.config.path,
+            'game_config': open_and_get_path(game.game_config.config),
         },
         'logger': {
             'image_id': competition.logger.get_image_id(),
@@ -64,7 +61,7 @@ def run_game_unsafe(self, game):
                 'sandboxer': submit.lang.execute_container.get_sandboxer(),
                 'id': submit.team.id,
                 'token': generate_random_token(),
-                'code': submit.compiled_code.path,
+                'code': open_and_get_path(submit.compiled_code.path),
                 'submit': submit,
             }
             for submit in game.players.all()
@@ -130,3 +127,8 @@ def run_game_unsafe(self, game):
     game.error_log = ''
     game.save()
     print('saving completed')
+
+def open_and_get_path(filefield):
+    filefield.open()
+    filefield.close()
+    return filefield.path
