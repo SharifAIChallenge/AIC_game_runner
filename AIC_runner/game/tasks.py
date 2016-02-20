@@ -62,7 +62,7 @@ def run_game_unsafe(self, game):
             {
                 'image_id': submit.lang.execute_container.get_image_id(),
                 'sandboxer': submit.lang.execute_container.get_sandboxer(),
-                'name': submit.team.name,
+                'id': submit.team.id,
                 'token': generate_random_token(),
                 'code': submit.compiled_code.path,
                 'submit': submit,
