@@ -184,6 +184,7 @@ class GameRequest(models.Model):
     made_time = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     accepted = models.NullBooleanField(_('state'))
     accept_time = models.DateTimeField(_('accept time'), null=True, blank=True)
+    game_config = models.ForeignKey('game.GameConfiguration', verbose_name=_('game configuration'), null=False)
 
     game = models.ForeignKey('game.Game', null=True)
 
@@ -191,12 +192,12 @@ class GameRequest(models.Model):
         return self.accept_time is not None
 
     @classmethod
-    def create(cls, requester, requestee):
+    def create(cls, requester, requestee, game_config):
         wait = cls.check_last_time(requester)
         if wait:
             return wait
 
-        cls.objects.create(requester=requester, requestee=requestee)
+        cls.objects.create(requester=requester, requestee=requestee, game_config=game_config)
 
     @classmethod
     def check_last_time(cls, team):
@@ -204,8 +205,9 @@ class GameRequest(models.Model):
         if last_time:
             now = timezone.now()
             one_hour_before = now - datetime.timedelta(hours=1)
-            if one_hour_before - last_time > 0:
-                return int((one_hour_before - last_time).total_seconds() / 60)
+            seconds = (last_time - one_hour_before).total_seconds()
+            if seconds > 0:
+                return int(seconds / 60)
         return False
 
     def accept(self, accepted):
@@ -216,5 +218,5 @@ class GameRequest(models.Model):
         self.accepted = accepted
         self.accept_time = timezone.now()
         if accepted:
-            Game.create([self.requestee, self.requester])
+            Game.create([self.requestee, self.requester], game_conf=self.game_config)
         self.save()

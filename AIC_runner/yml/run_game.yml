@@ -5,7 +5,7 @@ server:
     - {{ server.game_config }}:/game/config.zip:ro
   environment:
     {% for client in clients %}
-    - client{{ loop.index0 }}_name={{ client.name }}
+    - client{{ loop.index0 }}_id={{ client.id }}
     - client{{ loop.index0 }}_token={{ client.token }}
     {% endfor %}
     - logger_token={{ logger.token }}
