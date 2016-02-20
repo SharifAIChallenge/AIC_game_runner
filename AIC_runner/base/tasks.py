@@ -36,14 +36,18 @@ def compile_code(self, submit_id):
         'sandboxer': container.get_sandboxer(),
     }
 
+    def set_submit_compiling():
+        submit.status = 2
+        submit.save()
+
     try:
-        parser.create_yml_and_run(str(submit_id), "compile.yml", compile_context, timeout=submit.team.competition.compile_time_limit)
+        parser.create_yml_and_run(str(submit_id), "compile.yml", compile_context, timeout=submit.team.competition.compile_time_limit, callback_before_run=set_submit_compiling)
 
         with open(compile_context['code_log'] + '/status.log') as data_file:
             data = json.load(data_file)
 
         print('errors: %s' % str(data['errors']))
-        submit.status = 3 if data['errors'] else 2
+        submit.status = 4 if data['errors'] else 3
         if data['errors']:
             error = 'Error at stage %d of compile:\n' % data['stage']
             error += '\n'.join([str(err) for err in data['errors']])
@@ -57,7 +61,7 @@ def compile_code(self, submit_id):
             print(submit.compiled_code)
         submit.compile_log_file = error[:1000]
     except TimeoutError:
-        submit.status = 3
+        submit.status = 4
         submit.compile_log_file = 'Compile time limit exceeded.'
         data = 'Compile time limit exceeded.'
 
