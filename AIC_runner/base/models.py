@@ -1,23 +1,20 @@
 # -*- coding: utf-8 -*-
 import base64
-import datetime
+import re
 import uuid
 
-import re
-
 from ckeditor.fields import RichTextField
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.db import models
-from django.db.models import SET_NULL, Max
+from django.db.models import SET_NULL
 from django.db.models.signals import post_save
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django_countries.fields import CountryField
 from game.models import Game, GameTeamSubmit
-from django.conf import settings
-
 
 syncing_storage = settings.BASE_AND_GAME_STORAGE
 
@@ -58,6 +55,13 @@ class Team(models.Model):
 
     def get_members(self):
         return self.member_set.exclude(pk=self.head.pk).distinct()
+
+    @property
+    def final_submit(self):
+        if not self.final_submission:
+            self.final_submission = self.submit_set.filter(status=2).last()
+            self.save()
+        return self.final_submission
 
 
 def team_code_directory_path(instance, filename):
@@ -202,13 +206,14 @@ class GameRequest(models.Model):
 
     @classmethod
     def check_last_time(cls, team):
-        last_time = cls.objects.filter(requester=team, accepted=True).aggregate(Max('accept_time'))['accept_time__max']
-        if last_time:
-            now = timezone.now()
-            one_hour_before = now - datetime.timedelta(hours=1)
-            seconds = (last_time - one_hour_before).total_seconds()
-            if seconds > 0:
-                return int(seconds / 60)
+        # last_time = cls.objects.filter(requester=team, accepted=True).aggregate(Max('accept_time'))['accept_time__max']
+        # if last_time:
+        #     now = timezone.now()
+        #     one_hour_before = now - datetime.timedelta(hours=1)
+        #     seconds = (last_time - one_hour_before).total_seconds()
+        #     if seconds > 0:
+        #         return int(seconds / 60)
+        # return False
         return False
 
     def accept(self, accepted):

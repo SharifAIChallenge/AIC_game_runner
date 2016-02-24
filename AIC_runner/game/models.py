@@ -131,6 +131,7 @@ class Game(models.Model):
         (2, _('qualifications')),
         (3, _('finals')),
         (4, _('seeding')),
+        (5, _('supplementary')),
     )
 
     STATUSES = (
@@ -161,8 +162,15 @@ class Game(models.Model):
     def __unicode__(self):
         return self.title
 
+    @property
     def get_log_url(self):
         return reverse('play_log') + '?game=%d&log=%s' % (self.id, os.path.basename(self.log_file.name))
+
+    def get_log_link(self):
+        return '<a href="%s">view log</a>' % (self.get_log_url,)
+
+    get_log_link.allow_tags = True
+    get_log_link.short_description = "Log link"
 
     @classmethod
     def create(cls, participants, game_type=1, game_conf=None, title=None):
@@ -176,7 +184,7 @@ class Game(models.Model):
             game_config=game_conf,
         )
         for participant in participants:
-            GameTeamSubmit.objects.create(game=game, submit=participant.submit_set.last())
+            GameTeamSubmit.objects.create(game=game, submit=participant.final_submit)
         run_game.delay(game.id)
 
     def get_participants(self):
@@ -191,3 +199,13 @@ class GameTeamSubmit(models.Model):
 
     class Meta:
         ordering = ('score',)
+
+
+class TeamScore(models.Model):
+    team = models.ForeignKey('base.Team', verbose_name=_('team'))
+    score = models.FloatField(verbose_name=_('score'))
+    game_type = models.PositiveSmallIntegerField(verbose_name=_('game types'), choices=Game.GAME_TYPES)
+
+    class Meta:
+        verbose_name = _('score')
+        unique_together = ('team', 'game_type')
